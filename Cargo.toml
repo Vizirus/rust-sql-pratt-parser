@@ -2,6 +2,6 @@
 name = "programming_languages_project_name_surname"
 version = "0.0.0"
 edition = "2021"
-authors = ["your_academic_email"]
+authors = ["artem.snetkov@sa.stud.vu.lt"]
 
 [dependencies]

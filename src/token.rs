@@ -6,7 +6,7 @@ pub(crate) enum Token {
     Identifier(String),
     String(String),
     Number(u64),
-    Invalid(char),
+    Invalid(String),
     RightParentheses,
     LeftParentheses,
     GreaterThan,
@@ -50,7 +50,7 @@ pub(crate) enum Keyword {
 }
 
 impl Display for Token {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Token::Keyword(keyword) => write!(f, "{}", keyword),
             Token::Identifier(iden) => write!(f, "{:?}", iden),
@@ -75,7 +75,6 @@ impl Display for Token {
         }
     }
 }
-
 impl Display for Keyword {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
