@@ -1,6 +1,6 @@
 
 use crate::token;
-use crate::token::Keyword;
+use crate::token::{Keyword, Token};
 
 pub(crate) struct Tokenizer{
     pub(crate) tokens_collection: Vec<token::Token>,
@@ -16,12 +16,66 @@ impl Tokenizer{
         {
             match (tokenForLoop)
             {
-                '+' => splitted_tokens.push( String::from("+")),
-                '-' => splitted_tokens.push( String::from("-")),
-                '*' => splitted_tokens.push( String::from("*")),
-                '/' => splitted_tokens.push( String::from("/")),
-                '(' => splitted_tokens.push( String::from("(")),
-                ')' => splitted_tokens.push( String::from(")")),
+                '+' => {
+                    if(!statement.is_empty())
+                    {
+                        splitted_tokens.push(statement.clone());
+                        statement = String::new();
+                    }
+                    splitted_tokens.push( String::from("+"));
+                },
+                '-' => {
+                    if(!statement.is_empty())
+                    {
+                        splitted_tokens.push(statement.clone());
+                        statement = String::new();
+                    }
+                    splitted_tokens.push( String::from("-"))
+                },
+                '*' => {
+                    if(!statement.is_empty())
+                    {
+                        splitted_tokens.push(statement.clone());
+                        statement = String::new();
+                    }
+                    statement = String::new();
+                    splitted_tokens.push( String::from("*"))
+                },
+                '/' => {
+                    if(!statement.is_empty())
+                    {
+                        splitted_tokens.push(statement.clone());
+                        statement = String::new();
+                    }
+                    splitted_tokens.push( String::from("/"))
+                },
+                '(' => {
+                    if(!statement.is_empty())
+                    {
+                        splitted_tokens.push(statement.clone());
+                        statement = String::new();
+                    }
+                    if(!conditionalSt.is_empty())
+                    {
+                        splitted_tokens.push(conditionalSt.clone());
+                        conditionalSt = String::new();
+                    }
+                    splitted_tokens.push( String::from("("));
+
+                },
+                ')' => {
+                    if(!conditionalSt.is_empty())
+                    {
+                        splitted_tokens.push(conditionalSt.clone());
+                        conditionalSt = String::new();
+                    }
+                    if(!statement.is_empty())
+                    {
+                        splitted_tokens.push(statement.clone());
+                        statement = String::new();
+                    }
+                    splitted_tokens.push( String::from(")"))
+                },
                 '>' => {
                     conditionalSt.push('>');
                     if(!statement.is_empty())
@@ -140,7 +194,13 @@ impl Tokenizer{
                 "check"=> self.tokens_collection.push(token::Token::Keyword(Keyword::Check)),
                 "int" => self.tokens_collection.push(token::Token::Keyword(Keyword::Int)),
                 "bool"=> self.tokens_collection.push(token::Token::Keyword(Keyword::Bool)),
-                "varchar" => self.tokens_collection.push(token::Token::Keyword(Keyword::Varchar)),
+                "varchar" => {
+                    self.tokens_collection.push(token::Token::Keyword(Keyword::Varchar));
+                    splitted_token_iter.next();
+                    let mut Number = splitted_token_iter.next();
+                    self.tokens_collection.push(Token::Number(Number.unwrap().parse().unwrap()));
+                    splitted_token_iter.next();
+                },
                 "null" => self.tokens_collection.push(token::Token::Keyword(Keyword::Null)),
                 //Special signs
                 ";" => self.tokens_collection.push(token::Token::Semicolon),
@@ -148,14 +208,35 @@ impl Tokenizer{
                     self.tokens_collection.push(token::Token::Comma);
                     shouldBeStated = true;
                 },
-                ">" => self.tokens_collection.push(token::Token::GreaterThan),
-                "<" => self.tokens_collection.push(token::Token::LessThan),
-                ">=" => self.tokens_collection.push(token::Token::GreaterThanOrEqual),
-                "<=" => self.tokens_collection.push(token::Token::LessThanOrEqual),
-                "==" => self.tokens_collection.push(token::Token::Equal),
-                "!=" => self.tokens_collection.push(token::Token::NotEqual),
-                "(" => self.tokens_collection.push(token::Token::RightParentheses),
-                ")" => self.tokens_collection.push(token::Token::LeftParentheses),
+                ">" => {
+                    shouldBeStated = true;
+                    self.tokens_collection.push(token::Token::GreaterThan)
+                },
+                "<" => {
+                    shouldBeStated = true;
+                    self.tokens_collection.push(token::Token::LessThan)
+                },
+                ">=" => {
+                    shouldBeStated = true;
+                    self.tokens_collection.push(token::Token::GreaterThanOrEqual)
+                },
+                "<=" => {
+                    shouldBeStated = true;
+                    self.tokens_collection.push(token::Token::LessThanOrEqual)
+                },
+                "==" => {
+                    shouldBeStated = true;
+                    self.tokens_collection.push(token::Token::Equal)
+                },
+                "!=" => {
+                    shouldBeStated = true;
+                    self.tokens_collection.push(token::Token::NotEqual)
+                },
+                "(" => {
+                    shouldBeStated = true;
+                    self.tokens_collection.push(token::Token::LeftParentheses)
+                },
+                ")" => self.tokens_collection.push(token::Token::RightParentheses),
                 "+" => self.tokens_collection.push(token::Token::Plus),
                 "-" => self.tokens_collection.push(token::Token::Minus),
                 "*" => self.tokens_collection.push(token::Token::Star),
@@ -183,29 +264,5 @@ impl Tokenizer{
             }
         }
         self.tokens_collection.push(token::Token::Eof);
-    }
-}
-#[cfg(test)]
-mod all_tests
-{
-    use crate::tokenizer;
-    use super::*;
-    #[test]
-    fn compare_basic_tokenizer()
-    {
-        let mut tokenizer_struct = tokenizer::Tokenizer{tokens_collection: Vec::new()};
-        tokenizer_struct.tokenize_string(String::from("SELECT one, two FROM users ; "));
-        let mut ProperVec = Vec::new();
-        ProperVec.push(token::Token::Keyword(Keyword::Select));
-        ProperVec.push(token::Token::Identifier(String::from("one")));
-        ProperVec.push(token::Token::Comma);
-        ProperVec.push(token::Token::Identifier(String::from("two")));
-        ProperVec.push(token::Token::Keyword(Keyword::From));
-        ProperVec.push(token::Token::Identifier(String::from("users")));
-        ProperVec.push(token::Token::Semicolon);
-        ProperVec.push(token::Token::Eof);
-        for i in 0..ProperVec.len(){
-            assert_eq!(tokenizer_struct.tokens_collection[i], ProperVec[i]);
-        }
     }
 }

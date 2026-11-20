@@ -1,3 +1,5 @@
-**/target/**
-**/venv/**
-**/.idea/**
+target/
+**/*.rs.bk
+.idea/
+.vscode/
+.DS_Store

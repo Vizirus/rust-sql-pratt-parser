@@ -1,6 +1,8 @@
-use std::fmt::{Debug, Display, Formatter};
+   use crate::ParsingStatments::Identifier;
+use std::fmt::{write, Debug, Display, Formatter};
+   use crate::statement::Expression::BinaryOperation;
 
-/// The main entity of the whole parser. `Statement` is implemented as an enumeration because adding functionality is as easy as adding an enumeration constant and implementing functionality for that enumeration constant (implementation in the database command interpreter, which is not a part of this project). Parsing any correct `SELECT` or `CREATE`  (or `UPDATE`, `INSERT INTO`, ... hypothetically) statement should be turned into an instance of this enumeration. Ultimately, your main parser function (something like `build_statement(query: &str) -> Statement`) should return this enumeration.
+   /// The main entity of the whole parser. `Statement` is implemented as an enumeration because adding functionality is as easy as adding an enumeration constant and implementing functionality for that enumeration constant (implementation in the database command interpreter, which is not a part of this project). Parsing any correct `SELECT` or `CREATE`  (or `UPDATE`, `INSERT INTO`, ... hypothetically) statement should be turned into an instance of this enumeration. Ultimately, your main parser function (something like `build_statement(query: &str) -> Statement`) should return this enumeration.
 ///
 /// The `SELECT` statement has four components:
 /// 1. `columns` – A vector of columns from the selected table that the database should return.
@@ -234,10 +236,11 @@ use std::fmt::{Debug, Display, Formatter};
 /// ```
 /// is a string, that, the parser should throw an error to the user when it encounters it (no semicolon at the end).
 #[derive(Debug, PartialEq)]
+#[derive(Clone)]
 pub enum Statement {
     Select {
         columns: Vec<Expression>,
-        from: String,
+        from: Expression,
         r#where: Option<Expression>,
         orderby: Vec<Expression>,
     },
@@ -362,6 +365,7 @@ pub enum Statement {
 /// is a string, that, the parser should throw an error to the user when it encounters it.
 
 #[derive(Debug, PartialEq)]
+#[derive(Clone)]
 pub enum Expression {
     BinaryOperation {
         left_operand: Box<Expression>,
@@ -383,6 +387,7 @@ pub enum Expression {
 /// 2. `column_type` – The type of the column. Types are defined in the `DBType` enum.
 /// 3.  `constraints` – A vector of constraints on the column. Types of constraints are defined in the `Constraint` enum.
 #[derive(Debug, PartialEq)]
+#[derive(Clone)]
 pub struct TableColumn {
     pub column_name: String,
     pub column_type: DBType,
@@ -391,14 +396,16 @@ pub struct TableColumn {
 
 /// A column in the database can be any of these types. `Int` and `Bool` types have no additional info, while the `Varchar(n)` type has an additional argument – the length of the string. Adding a type, such as `DECIMAL(n, m)` is boiled down to adding tokens for that type, parsing that type and adding it to this enum.
 #[derive(Debug, PartialEq)]
+#[derive(Clone)]
 pub enum DBType {
     Int,
-    Varchar(usize),
+    Varchar(u64),
     Bool,
 }
 
 /// A column can be limited to a domain of values, which is defined by constraints on that column. `PrimaryKey` and `NotNull` constraints have no additional info, while the `Check` constraints has an additional argument – the expression which every table row must satisfy.
 #[derive(Debug, PartialEq)]
+#[derive(Clone)]
 pub enum Constraint {
     NotNull,
     PrimaryKey,
@@ -407,6 +414,7 @@ pub enum Constraint {
 
 /// Binary and unary operators are defined as enums, where each enumeration constant represents one operator. Binary and unary operators are defined separately because a `-` (minus), for example can be in a binary operation: `5 - 4`, as well as in a unary operation: `-2`. `Asc` and `Desc` are `ORDER BY` operators that have the lowest operator precedence in any expression. While both unary and binary operators may be the exact same as tokens that represent them, it is important to make a distinction between them, as they are used in different contexts.
 #[derive(Debug, PartialEq)]
+#[derive(Clone)]
 pub enum BinaryOperator {
     Plus,
     Minus,
@@ -424,6 +432,7 @@ pub enum BinaryOperator {
 
 /// Binary and unary operators are defined as enums, where each enumeration constant represents one operator. Binary and unary operators are defined separately because a `-` (minus), for example can be in a binary operation: `5 - 4`, as well as in a unary operation: `-2`. `Asc` and `Desc` are `ORDER BY` operators that have the lowest operator precedence in any expression. While both unary and binary operators may be the exact same as tokens that represent them, it is important to make a distinction between them, as they are used in different contexts.
 #[derive(Debug, PartialEq)]
+#[derive(Clone)]
 pub enum UnaryOperator {
     Not,
     Plus,
@@ -436,7 +445,18 @@ pub enum UnaryOperator {
 // Automatic derivation of those traits can be done, but the actual printing
 // will be the same as in Debug prints which is not useful
 // when printing to the end user.
-
+/*impl Display for Expression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expression::BinaryOperation{left_operand, operator, right_operand} =>  write!(f, "Left Operand: {:?}\nOperator: {:?}\n Right Operand: {:?}", left_operand, operator, right_operand),
+            Expression::UnaryOperation { operator, operand } =>  write!(f, "Unary Operator: {:?}\nOperand: {:?}", operator, operand),
+            Expression::Number(number) => write!(f, "{}", number),
+            Expression::Bool(boolean) => write!(f, "{}", boolean),
+            Expression::Identifier(identifier) => write!(f, "{}", identifier),
+            Expression::String(string) => write!(f, "{}", string),
+        }
+    }
+}*/
 impl Display for UnaryOperator {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -467,20 +487,47 @@ impl Display for BinaryOperator {
         }
     }
 }
-
+impl Display for Statement{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Statement::Select {columns, from, r#where, orderby} => write!(f, "Columns: {:?}\n\tFrom: {:?}\n\tWhere: {:?}\n\tOrder By {:?}", columns, from, r#where, orderby),
+            Statement::CreateTable {table_name, column_list} => write!(f, "\nCreate Table: {:?}\n\tColumn list {:?}", table_name,  column_list),
+        }
+    }
+}
 impl Display for Expression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Expression::BinaryOperation { left_operand, operator, right_operand } => {
-                write!(f, "({:?} {:?} {:?})", left_operand, operator, right_operand)
+                write!(f, "\n({} \n\t{} \n\t{})", left_operand, operator, right_operand)
             }
             Expression::UnaryOperation { operand, operator } => {
-                write!(f, "({:?} {:?})", operator, operand)
+                write!(f, "\n({} \n\t{})", operator, operand)
             }
-            Expression::Number(num) => write!(f, "{num}"),
-            Expression::Identifier(iden) => write!(f, "{}", iden),
-            Expression::String(str) => write!(f, "\"{}\"", str),
-            Expression::Bool(b) => write!(f, "{}", b)
+            Expression::Number(num) => write!(f, "\n\t{num}"),
+            Expression::Identifier(iden) => write!(f, "\n{iden}"),
+            Expression::String(str) => write!(f, "\n\"{}\"", str),
+            Expression::Bool(b) => write!(f, "\n{}", b)
         }
     }
 }
+   impl Display for DBType {
+       fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+           write!(f, "{:?}", self)
+       }
+   }
+   impl Display for Constraint {
+       fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+           match self {
+               Constraint::NotNull => write!(f, "NOT NULL"),
+               Constraint::PrimaryKey => write!(f, "PRIMARY KEY"),
+               Constraint::Check(op) => write!(f, "CHECK({}\n)", op),
+           }
+       }
+   }
+   impl Display for TableColumn {
+       fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+           write!(f, " {}, {}",  self.column_name, self.column_type)
+
+       }
+   }
