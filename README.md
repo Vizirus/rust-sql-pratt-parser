@@ -1,6 +1,6 @@
 # Rust SQL Pratt Parser
 
-A zero-dependency SQL parser implemented in **pure Rust** (`std` only, Edition 2021) using a custom lexical **tokenizer** and a **Pratt parser** (operator-precedence parsing) to transform SQL queries into structured AST statements.
+A zero-dependency SQL parser implemented in **pure Rust** (`std` only, Edition 2021) using a custom lexical **tokenizer** and a **Pratt parser** (operator-precedence parsing) to transform SQL queries into structured AST statements. 
 
 ## Features
 
